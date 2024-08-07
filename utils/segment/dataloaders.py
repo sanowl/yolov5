@@ -2,7 +2,6 @@
 """Dataloaders."""
 
 import os
-import random
 
 import cv2
 import numpy as np
@@ -14,6 +13,7 @@ from ..dataloaders import InfiniteDataLoader, LoadImagesAndLabels, SmartDistribu
 from ..general import LOGGER, xyn2xy, xywhn2xyxy, xyxy2xywhn
 from ..torch_utils import torch_distributed_zero_first
 from .augmentations import mixup, random_perspective
+import secrets
 
 RANK = int(os.getenv("RANK", -1))
 
@@ -127,7 +127,7 @@ class LoadImagesAndLabelsAndMasks(LoadImagesAndLabels):  # for training/testing
         index = self.indices[index]  # linear, shuffled, or image_weights
 
         hyp = self.hyp
-        mosaic = self.mosaic and random.random() < hyp["mosaic"]
+        mosaic = self.mosaic and secrets.SystemRandom().random() < hyp["mosaic"]
         masks = []
         if mosaic:
             # Load mosaic
@@ -135,8 +135,8 @@ class LoadImagesAndLabelsAndMasks(LoadImagesAndLabels):  # for training/testing
             shapes = None
 
             # MixUp augmentation
-            if random.random() < hyp["mixup"]:
-                img, labels, segments = mixup(img, labels, segments, *self.load_mosaic(random.randint(0, self.n - 1)))
+            if secrets.SystemRandom().random() < hyp["mixup"]:
+                img, labels, segments = mixup(img, labels, segments, *self.load_mosaic(secrets.SystemRandom().randint(0, self.n - 1)))
 
         else:
             # Load image
@@ -205,14 +205,14 @@ class LoadImagesAndLabelsAndMasks(LoadImagesAndLabels):  # for training/testing
             augment_hsv(img, hgain=hyp["hsv_h"], sgain=hyp["hsv_s"], vgain=hyp["hsv_v"])
 
             # Flip up-down
-            if random.random() < hyp["flipud"]:
+            if secrets.SystemRandom().random() < hyp["flipud"]:
                 img = np.flipud(img)
                 if nl:
                     labels[:, 2] = 1 - labels[:, 2]
                     masks = torch.flip(masks, dims=[1])
 
             # Flip left-right
-            if random.random() < hyp["fliplr"]:
+            if secrets.SystemRandom().random() < hyp["fliplr"]:
                 img = np.fliplr(img)
                 if nl:
                     labels[:, 1] = 1 - labels[:, 1]
@@ -234,10 +234,10 @@ class LoadImagesAndLabelsAndMasks(LoadImagesAndLabels):  # for training/testing
         """Loads 1 image + 3 random images into a 4-image YOLOv5 mosaic, adjusting labels and segments accordingly."""
         labels4, segments4 = [], []
         s = self.img_size
-        yc, xc = (int(random.uniform(-x, 2 * s + x)) for x in self.mosaic_border)  # mosaic center x, y
+        yc, xc = (int(secrets.SystemRandom().uniform(-x, 2 * s + x)) for x in self.mosaic_border)  # mosaic center x, y
 
         # 3 additional image indices
-        indices = [index] + random.choices(self.indices, k=3)  # 3 additional image indices
+        indices = [index] + secrets.SystemRandom().choices(self.indices, k=3)  # 3 additional image indices
         for i, index in enumerate(indices):
             # Load image
             img, _, (h, w) = self.load_image(index)
