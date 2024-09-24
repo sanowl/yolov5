@@ -8,6 +8,7 @@ from pathlib import Path
 
 import requests
 import torch
+from security import safe_requests
 
 
 def is_url(url, check=True):
@@ -95,7 +96,7 @@ def attempt_download(file, repo="ultralytics/yolov5", release="v7.0"):
         # Return GitHub repo tag (i.e. 'v7.0') and assets (i.e. ['yolov5s.pt', 'yolov5m.pt', ...])
         if version != "latest":
             version = f"tags/{version}"  # i.e. tags/v7.0
-        response = requests.get(f"https://api.github.com/repos/{repository}/releases/{version}").json()  # github api
+        response = safe_requests.get(f"https://api.github.com/repos/{repository}/releases/{version}").json()  # github api
         return response["tag_name"], [x["name"] for x in response["assets"]]  # tag, assets
 
     file = Path(str(file).strip().replace("'", ""))
