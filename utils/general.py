@@ -9,7 +9,6 @@ import logging.config
 import math
 import os
 import platform
-import random
 import re
 import signal
 import subprocess
@@ -33,6 +32,7 @@ import pkg_resources as pkg
 import torch
 import torchvision
 import yaml
+import secrets
 
 # Import 'ultralytics' package or install if missing
 try:
@@ -280,7 +280,7 @@ def init_seeds(seed=0, deterministic=False):
 
     See https://pytorch.org/docs/stable/notes/randomness.html
     """
-    random.seed(seed)
+    secrets.SystemRandom().seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)

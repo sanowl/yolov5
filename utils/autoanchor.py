@@ -1,8 +1,6 @@
 # Ultralytics YOLOv5 🚀, AGPL-3.0 license
 """AutoAnchor utils."""
 
-import random
-
 import numpy as np
 import torch
 import yaml
@@ -10,6 +8,7 @@ from tqdm import tqdm
 
 from utils import TryExcept
 from utils.general import LOGGER, TQDM_BAR_FORMAT, colorstr
+import secrets
 
 PREFIX = colorstr("AutoAnchor: ")
 
@@ -159,7 +158,7 @@ def kmean_anchors(dataset="./data/coco128.yaml", n=9, img_size=640, thr=4.0, gen
     for _ in pbar:
         v = np.ones(sh)
         while (v == 1).all():  # mutate until a change occurs (prevent duplicates)
-            v = ((npr.random(sh) < mp) * random.random() * npr.randn(*sh) * s + 1).clip(0.3, 3.0)
+            v = ((npr.random(sh) < mp) * secrets.SystemRandom().random() * npr.randn(*sh) * s + 1).clip(0.3, 3.0)
         kg = (k.copy() * v).clip(min=2.0)
         fg = anchor_fitness(kg)
         if fg > f:
