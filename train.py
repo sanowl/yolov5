@@ -17,13 +17,13 @@ Tutorial:   https://docs.ultralytics.com/yolov5/tutorials/train_custom_data
 import argparse
 import math
 import os
-import random
 import subprocess
 import sys
 import time
 from copy import deepcopy
 from datetime import datetime, timedelta
 from pathlib import Path
+import secrets
 
 try:
     import comet_ml  # must be imported before torch (if installed)
@@ -342,7 +342,7 @@ def train(hyp, opt, device, callbacks):
         if opt.image_weights:
             cw = model.class_weights.cpu().numpy() * (1 - maps) ** 2 / nc  # class weights
             iw = labels_to_image_weights(dataset.labels, nc=nc, class_weights=cw)  # image weights
-            dataset.indices = random.choices(range(dataset.n), weights=iw, k=dataset.n)  # rand weighted idx
+            dataset.indices = secrets.SystemRandom().choices(range(dataset.n), weights=iw, k=dataset.n)  # rand weighted idx
 
         # Update mosaic border (optional)
         # b = int(random.uniform(0.25 * imgsz, 0.75 * imgsz + gs) // gs * gs)
@@ -374,7 +374,7 @@ def train(hyp, opt, device, callbacks):
 
             # Multi-scale
             if opt.multi_scale:
-                sz = random.randrange(int(imgsz * 0.5), int(imgsz * 1.5) + gs) // gs * gs  # size
+                sz = secrets.SystemRandom().randrange(int(imgsz * 0.5), int(imgsz * 1.5) + gs) // gs * gs  # size
                 sf = sz / max(imgs.shape[2:])  # scale factor
                 if sf != 1:
                     ns = [math.ceil(x * sf / gs) * gs for x in imgs.shape[2:]]  # new shape (stretched to gs-multiple)
@@ -778,7 +778,7 @@ def main(opt, callbacks=Callbacks()):
                     int(min(tournament_size_max, pop_size) - (generation / (opt.evolve / 10))),
                 )
                 # Perform tournament selection to choose the best individual
-                tournament_indices = random.sample(range(pop_size), tournament_size)
+                tournament_indices = secrets.SystemRandom().sample(range(pop_size), tournament_size)
                 tournament_fitness = [fitness_scores[j] for j in tournament_indices]
                 winner_index = tournament_indices[tournament_fitness.index(max(tournament_fitness))]
                 selected_indices.append(winner_index)
@@ -789,14 +789,14 @@ def main(opt, callbacks=Callbacks()):
             # Create the next generation through crossover and mutation
             next_generation = []
             for _ in range(pop_size):
-                parent1_index = selected_indices[random.randint(0, pop_size - 1)]
-                parent2_index = selected_indices[random.randint(0, pop_size - 1)]
+                parent1_index = selected_indices[secrets.SystemRandom().randint(0, pop_size - 1)]
+                parent2_index = selected_indices[secrets.SystemRandom().randint(0, pop_size - 1)]
                 # Adaptive crossover rate
                 crossover_rate = max(
                     crossover_rate_min, min(crossover_rate_max, crossover_rate_max - (generation / opt.evolve))
                 )
-                if random.uniform(0, 1) < crossover_rate:
-                    crossover_point = random.randint(1, len(hyp_GA) - 1)
+                if secrets.SystemRandom().uniform(0, 1) < crossover_rate:
+                    crossover_point = secrets.SystemRandom().randint(1, len(hyp_GA) - 1)
                     child = population[parent1_index][:crossover_point] + population[parent2_index][crossover_point:]
                 else:
                     child = population[parent1_index]
@@ -805,8 +805,8 @@ def main(opt, callbacks=Callbacks()):
                     mutation_rate_min, min(mutation_rate_max, mutation_rate_max - (generation / opt.evolve))
                 )
                 for j in range(len(hyp_GA)):
-                    if random.uniform(0, 1) < mutation_rate:
-                        child[j] += random.uniform(-0.1, 0.1)
+                    if secrets.SystemRandom().uniform(0, 1) < mutation_rate:
+                        child[j] += secrets.SystemRandom().uniform(-0.1, 0.1)
                         child[j] = min(max(child[j], gene_ranges[j][0]), gene_ranges[j][1])
                 next_generation.append(child)
             # Replace the old population with the new generation
@@ -829,7 +829,7 @@ def generate_individual(input_ranges, individual_length):
     individual = []
     for i in range(individual_length):
         lower_bound, upper_bound = input_ranges[i]
-        individual.append(random.uniform(lower_bound, upper_bound))
+        individual.append(secrets.SystemRandom().uniform(lower_bound, upper_bound))
     return individual
 
 

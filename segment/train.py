@@ -18,7 +18,6 @@ Tutorial:   https://docs.ultralytics.com/yolov5/tutorials/train_custom_data
 import argparse
 import math
 import os
-import random
 import subprocess
 import sys
 import time
@@ -33,6 +32,7 @@ import torch.nn as nn
 import yaml
 from torch.optim import lr_scheduler
 from tqdm import tqdm
+import secrets
 
 FILE = Path(__file__).resolve()
 ROOT = FILE.parents[1]  # YOLOv5 root directory
@@ -337,7 +337,7 @@ def train(hyp, opt, device, callbacks):
         if opt.image_weights:
             cw = model.class_weights.cpu().numpy() * (1 - maps) ** 2 / nc  # class weights
             iw = labels_to_image_weights(dataset.labels, nc=nc, class_weights=cw)  # image weights
-            dataset.indices = random.choices(range(dataset.n), weights=iw, k=dataset.n)  # rand weighted idx
+            dataset.indices = secrets.SystemRandom().choices(range(dataset.n), weights=iw, k=dataset.n)  # rand weighted idx
 
         # Update mosaic border (optional)
         # b = int(random.uniform(0.25 * imgsz, 0.75 * imgsz + gs) // gs * gs)
@@ -372,7 +372,7 @@ def train(hyp, opt, device, callbacks):
 
             # Multi-scale
             if opt.multi_scale:
-                sz = random.randrange(int(imgsz * 0.5), int(imgsz * 1.5) + gs) // gs * gs  # size
+                sz = secrets.SystemRandom().randrange(int(imgsz * 0.5), int(imgsz * 1.5) + gs) // gs * gs  # size
                 sf = sz / max(imgs.shape[2:])  # scale factor
                 if sf != 1:
                     ns = [math.ceil(x * sf / gs) * gs for x in imgs.shape[2:]]  # new shape (stretched to gs-multiple)
@@ -708,7 +708,7 @@ def main(opt, callbacks=Callbacks()):
                 w = fitness(x) - fitness(x).min() + 1e-6  # weights (sum > 0)
                 if parent == "single" or len(x) == 1:
                     # x = x[random.randint(0, n - 1)]  # random selection
-                    x = x[random.choices(range(n), weights=w)[0]]  # weighted selection
+                    x = x[secrets.SystemRandom().choices(range(n), weights=w)[0]]  # weighted selection
                 elif parent == "weighted":
                     x = (x * w.reshape(n, 1)).sum(0) / w.sum()  # weighted combination
 

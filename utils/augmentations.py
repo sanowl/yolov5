@@ -2,7 +2,6 @@
 """Image augmentation functions."""
 
 import math
-import random
 
 import cv2
 import numpy as np
@@ -12,6 +11,7 @@ import torchvision.transforms.functional as TF
 
 from utils.general import LOGGER, check_version, colorstr, resample_segments, segment2box, xywhn2xyxy
 from utils.metrics import bbox_ioa
+import secrets
 
 IMAGENET_MEAN = 0.485, 0.456, 0.406  # RGB mean
 IMAGENET_STD = 0.229, 0.224, 0.225  # RGB standard deviation
@@ -48,7 +48,7 @@ class Albumentations:
 
     def __call__(self, im, labels, p=1.0):
         """Applies transformations to an image and labels with probability `p`, returning updated image and labels."""
-        if self.transform and random.random() < p:
+        if self.transform and secrets.SystemRandom().random() < p:
             new = self.transform(image=im, bboxes=labels[:, 1:], class_labels=labels[:, 0])  # transformed
             im, labels = new["image"], np.array([[c, *b] for c, b in zip(new["class_labels"], new["bboxes"])])
         return im, labels
@@ -110,7 +110,7 @@ def replicate(im, labels):
     for i in s.argsort()[: round(s.size * 0.5)]:  # smallest indices
         x1b, y1b, x2b, y2b = boxes[i]
         bh, bw = y2b - y1b, x2b - x1b
-        yc, xc = int(random.uniform(0, h - bh)), int(random.uniform(0, w - bw))  # offset x, y
+        yc, xc = int(secrets.SystemRandom().uniform(0, h - bh)), int(secrets.SystemRandom().uniform(0, w - bw))  # offset x, y
         x1a, y1a, x2a, y2a = [xc, yc, xc + bw, yc + bh]
         im[y1a:y2a, x1a:x2a] = im[y1b:y2b, x1b:x2b]  # im4[ymin:ymax, xmin:xmax]
         labels = np.append(labels, [[labels[i, 0], x1a, y1a, x2a, y2a]], axis=0)
@@ -167,26 +167,26 @@ def random_perspective(
 
     # Perspective
     P = np.eye(3)
-    P[2, 0] = random.uniform(-perspective, perspective)  # x perspective (about y)
-    P[2, 1] = random.uniform(-perspective, perspective)  # y perspective (about x)
+    P[2, 0] = secrets.SystemRandom().uniform(-perspective, perspective)  # x perspective (about y)
+    P[2, 1] = secrets.SystemRandom().uniform(-perspective, perspective)  # y perspective (about x)
 
     # Rotation and Scale
     R = np.eye(3)
-    a = random.uniform(-degrees, degrees)
+    a = secrets.SystemRandom().uniform(-degrees, degrees)
     # a += random.choice([-180, -90, 0, 90])  # add 90deg rotations to small rotations
-    s = random.uniform(1 - scale, 1 + scale)
+    s = secrets.SystemRandom().uniform(1 - scale, 1 + scale)
     # s = 2 ** random.uniform(-scale, scale)
     R[:2] = cv2.getRotationMatrix2D(angle=a, center=(0, 0), scale=s)
 
     # Shear
     S = np.eye(3)
-    S[0, 1] = math.tan(random.uniform(-shear, shear) * math.pi / 180)  # x shear (deg)
-    S[1, 0] = math.tan(random.uniform(-shear, shear) * math.pi / 180)  # y shear (deg)
+    S[0, 1] = math.tan(secrets.SystemRandom().uniform(-shear, shear) * math.pi / 180)  # x shear (deg)
+    S[1, 0] = math.tan(secrets.SystemRandom().uniform(-shear, shear) * math.pi / 180)  # y shear (deg)
 
     # Translation
     T = np.eye(3)
-    T[0, 2] = random.uniform(0.5 - translate, 0.5 + translate) * width  # x translation (pixels)
-    T[1, 2] = random.uniform(0.5 - translate, 0.5 + translate) * height  # y translation (pixels)
+    T[0, 2] = secrets.SystemRandom().uniform(0.5 - translate, 0.5 + translate) * width  # x translation (pixels)
+    T[1, 2] = secrets.SystemRandom().uniform(0.5 - translate, 0.5 + translate) * height  # y translation (pixels)
 
     # Combined rotation matrix
     M = T @ S @ R @ P @ C  # order of operations (right to left) is IMPORTANT
@@ -251,7 +251,7 @@ def copy_paste(im, labels, segments, p=0.5):
     if p and n:
         h, w, c = im.shape  # height, width, channels
         im_new = np.zeros(im.shape, np.uint8)
-        for j in random.sample(range(n), k=round(p * n)):
+        for j in secrets.SystemRandom().sample(range(n), k=round(p * n)):
             l, s = labels[j], segments[j]
             box = w - l[3], l[2], w - l[1], l[4]
             ioa = bbox_ioa(box, labels[:, 1:5])  # intersection over area
@@ -273,21 +273,21 @@ def cutout(im, labels, p=0.5):
 
     Details at https://arxiv.org/abs/1708.04552.
     """
-    if random.random() < p:
+    if secrets.SystemRandom().random() < p:
         h, w = im.shape[:2]
         scales = [0.5] * 1 + [0.25] * 2 + [0.125] * 4 + [0.0625] * 8 + [0.03125] * 16  # image size fraction
         for s in scales:
-            mask_h = random.randint(1, int(h * s))  # create random masks
-            mask_w = random.randint(1, int(w * s))
+            mask_h = secrets.SystemRandom().randint(1, int(h * s))  # create random masks
+            mask_w = secrets.SystemRandom().randint(1, int(w * s))
 
             # box
-            xmin = max(0, random.randint(0, w) - mask_w // 2)
-            ymin = max(0, random.randint(0, h) - mask_h // 2)
+            xmin = max(0, secrets.SystemRandom().randint(0, w) - mask_w // 2)
+            ymin = max(0, secrets.SystemRandom().randint(0, h) - mask_h // 2)
             xmax = min(w, xmin + mask_w)
             ymax = min(h, ymin + mask_h)
 
             # apply random color mask
-            im[ymin:ymax, xmin:xmax] = [random.randint(64, 191) for _ in range(3)]
+            im[ymin:ymax, xmin:xmax] = [secrets.SystemRandom().randint(64, 191) for _ in range(3)]
 
             # return unobscured labels
             if len(labels) and s > 0.03:
