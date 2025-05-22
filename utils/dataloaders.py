@@ -7,7 +7,6 @@ import hashlib
 import json
 import math
 import os
-import random
 import shutil
 import time
 from itertools import repeat
@@ -56,6 +55,7 @@ from utils.general import (
     xyxy2xywhn,
 )
 from utils.torch_utils import torch_distributed_zero_first
+import secrets
 
 # Parameters
 HELP_URL = "See https://docs.ultralytics.com/yolov5/tutorials/train_custom_data"
@@ -125,7 +125,7 @@ def seed_worker(worker_id):
     """
     worker_seed = torch.initial_seed() % 2**32
     np.random.seed(worker_seed)
-    random.seed(worker_seed)
+    secrets.SystemRandom().seed(worker_seed)
 
 
 # Inherit from DistributedSampler and override iterator
@@ -697,7 +697,7 @@ class LoadImagesAndLabels(Dataset):
         b, gb = 0, 1 << 30  # bytes of cached images, bytes per gigabytes
         n = min(self.n, 30)  # extrapolate from 30 random images
         for _ in range(n):
-            im = cv2.imread(random.choice(self.im_files))  # sample image
+            im = cv2.imread(secrets.choice(self.im_files))  # sample image
             ratio = self.img_size / max(im.shape[0], im.shape[1])  # max(h, w)  # ratio
             b += im.nbytes * ratio**2
         mem_required = b * self.n / n  # GB required to cache dataset into RAM
@@ -766,15 +766,15 @@ class LoadImagesAndLabels(Dataset):
         index = self.indices[index]  # linear, shuffled, or image_weights
 
         hyp = self.hyp
-        mosaic = self.mosaic and random.random() < hyp["mosaic"]
+        mosaic = self.mosaic and secrets.SystemRandom().random() < hyp["mosaic"]
         if mosaic:
             # Load mosaic
             img, labels = self.load_mosaic(index)
             shapes = None
 
             # MixUp augmentation
-            if random.random() < hyp["mixup"]:
-                img, labels = mixup(img, labels, *self.load_mosaic(random.choice(self.indices)))
+            if secrets.SystemRandom().random() < hyp["mixup"]:
+                img, labels = mixup(img, labels, *self.load_mosaic(secrets.choice(self.indices)))
 
         else:
             # Load image
@@ -813,13 +813,13 @@ class LoadImagesAndLabels(Dataset):
             augment_hsv(img, hgain=hyp["hsv_h"], sgain=hyp["hsv_s"], vgain=hyp["hsv_v"])
 
             # Flip up-down
-            if random.random() < hyp["flipud"]:
+            if secrets.SystemRandom().random() < hyp["flipud"]:
                 img = np.flipud(img)
                 if nl:
                     labels[:, 2] = 1 - labels[:, 2]
 
             # Flip left-right
-            if random.random() < hyp["fliplr"]:
+            if secrets.SystemRandom().random() < hyp["fliplr"]:
                 img = np.fliplr(img)
                 if nl:
                     labels[:, 1] = 1 - labels[:, 1]
@@ -873,9 +873,9 @@ class LoadImagesAndLabels(Dataset):
         """Loads a 4-image mosaic for YOLOv5, combining 1 selected and 3 random images, with labels and segments."""
         labels4, segments4 = [], []
         s = self.img_size
-        yc, xc = (int(random.uniform(-x, 2 * s + x)) for x in self.mosaic_border)  # mosaic center x, y
-        indices = [index] + random.choices(self.indices, k=3)  # 3 additional image indices
-        random.shuffle(indices)
+        yc, xc = (int(secrets.SystemRandom().uniform(-x, 2 * s + x)) for x in self.mosaic_border)  # mosaic center x, y
+        indices = [index] + secrets.SystemRandom().choices(self.indices, k=3)  # 3 additional image indices
+        secrets.SystemRandom().shuffle(indices)
         for i, index in enumerate(indices):
             # Load image
             img, _, (h, w) = self.load_image(index)
@@ -935,8 +935,8 @@ class LoadImagesAndLabels(Dataset):
         """
         labels9, segments9 = [], []
         s = self.img_size
-        indices = [index] + random.choices(self.indices, k=8)  # 8 additional image indices
-        random.shuffle(indices)
+        indices = [index] + secrets.SystemRandom().choices(self.indices, k=8)  # 8 additional image indices
+        secrets.SystemRandom().shuffle(indices)
         hp, wp = -1, -1  # height, width previous
         for i, index in enumerate(indices):
             # Load image
@@ -980,7 +980,7 @@ class LoadImagesAndLabels(Dataset):
             hp, wp = h, w  # height, width previous
 
         # Offset
-        yc, xc = (int(random.uniform(0, s)) for _ in self.mosaic_border)  # mosaic center x, y
+        yc, xc = (int(secrets.SystemRandom().uniform(0, s)) for _ in self.mosaic_border)  # mosaic center x, y
         img9 = img9[yc : yc + 2 * s, xc : xc + 2 * s]
 
         # Concat/clip labels
@@ -1030,7 +1030,7 @@ class LoadImagesAndLabels(Dataset):
         s = torch.tensor([[1, 1, 0.5, 0.5, 0.5, 0.5]])  # scale
         for i in range(n):  # zidane torch.zeros(16,3,720,1280)  # BCHW
             i *= 4
-            if random.random() < 0.5:
+            if secrets.SystemRandom().random() < 0.5:
                 im1 = F.interpolate(im[i].unsqueeze(0).float(), scale_factor=2.0, mode="bilinear", align_corners=False)[
                     0
                 ].type(im[i].type())
@@ -1110,8 +1110,8 @@ def autosplit(path=DATASETS_DIR / "coco128/images", weights=(0.9, 0.1, 0.0), ann
     path = Path(path)  # images dir
     files = sorted(x for x in path.rglob("*.*") if x.suffix[1:].lower() in IMG_FORMATS)  # image files only
     n = len(files)  # number of files
-    random.seed(0)  # for reproducibility
-    indices = random.choices([0, 1, 2], weights=weights, k=n)  # assign each image to a split
+    secrets.SystemRandom().seed(0)  # for reproducibility
+    indices = secrets.SystemRandom().choices([0, 1, 2], weights=weights, k=n)  # assign each image to a split
 
     txt = ["autosplit_train.txt", "autosplit_val.txt", "autosplit_test.txt"]  # 3 txt files
     for x in txt:

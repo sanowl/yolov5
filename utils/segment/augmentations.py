@@ -2,13 +2,13 @@
 """Image augmentation functions."""
 
 import math
-import random
 
 import cv2
 import numpy as np
 
 from ..augmentations import box_candidates
 from ..general import resample_segments, segment2box
+import secrets
 
 
 def mixup(im, labels, segments, im2, labels2, segments2):
@@ -40,26 +40,26 @@ def random_perspective(
 
     # Perspective
     P = np.eye(3)
-    P[2, 0] = random.uniform(-perspective, perspective)  # x perspective (about y)
-    P[2, 1] = random.uniform(-perspective, perspective)  # y perspective (about x)
+    P[2, 0] = secrets.SystemRandom().uniform(-perspective, perspective)  # x perspective (about y)
+    P[2, 1] = secrets.SystemRandom().uniform(-perspective, perspective)  # y perspective (about x)
 
     # Rotation and Scale
     R = np.eye(3)
-    a = random.uniform(-degrees, degrees)
+    a = secrets.SystemRandom().uniform(-degrees, degrees)
     # a += random.choice([-180, -90, 0, 90])  # add 90deg rotations to small rotations
-    s = random.uniform(1 - scale, 1 + scale)
+    s = secrets.SystemRandom().uniform(1 - scale, 1 + scale)
     # s = 2 ** random.uniform(-scale, scale)
     R[:2] = cv2.getRotationMatrix2D(angle=a, center=(0, 0), scale=s)
 
     # Shear
     S = np.eye(3)
-    S[0, 1] = math.tan(random.uniform(-shear, shear) * math.pi / 180)  # x shear (deg)
-    S[1, 0] = math.tan(random.uniform(-shear, shear) * math.pi / 180)  # y shear (deg)
+    S[0, 1] = math.tan(secrets.SystemRandom().uniform(-shear, shear) * math.pi / 180)  # x shear (deg)
+    S[1, 0] = math.tan(secrets.SystemRandom().uniform(-shear, shear) * math.pi / 180)  # y shear (deg)
 
     # Translation
     T = np.eye(3)
-    T[0, 2] = random.uniform(0.5 - translate, 0.5 + translate) * width  # x translation (pixels)
-    T[1, 2] = random.uniform(0.5 - translate, 0.5 + translate) * height  # y translation (pixels)
+    T[0, 2] = secrets.SystemRandom().uniform(0.5 - translate, 0.5 + translate) * width  # x translation (pixels)
+    T[1, 2] = secrets.SystemRandom().uniform(0.5 - translate, 0.5 + translate) * height  # y translation (pixels)
 
     # Combined rotation matrix
     M = T @ S @ R @ P @ C  # order of operations (right to left) is IMPORTANT
