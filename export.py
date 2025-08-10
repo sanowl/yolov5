@@ -59,6 +59,7 @@ from pathlib import Path
 import pandas as pd
 import torch
 from torch.utils.mobile_optimizer import optimize_for_mobile
+from security import safe_command
 
 FILE = Path(__file__).resolve()
 ROOT = FILE.parents[0]  # YOLOv5 root directory
@@ -525,8 +526,8 @@ def export_edgetpu(file, prefix=colorstr("Edge TPU:")):
             "sudo apt-get update",
             "sudo apt-get install edgetpu-compiler",
         ):
-            subprocess.run(c if sudo else c.replace("sudo ", ""), shell=True, check=True)
-    ver = subprocess.run(cmd, shell=True, capture_output=True, check=True).stdout.decode().split()[-1]
+            safe_command.run(subprocess.run, c if sudo else c.replace("sudo ", ""), shell=True, check=True)
+    ver = safe_command.run(subprocess.run, cmd, shell=True, capture_output=True, check=True).stdout.decode().split()[-1]
 
     LOGGER.info(f"\n{prefix} starting export with Edge TPU compiler {ver}...")
     f = str(file).replace(".pt", "-int8_edgetpu.tflite")  # Edge TPU model
@@ -567,7 +568,7 @@ def export_tfjs(file, int8, prefix=colorstr("TensorFlow.js:")):
         str(f_pb),
         f,
     ]
-    subprocess.run([arg for arg in args if arg], check=True)
+    safe_command.run(subprocess.run, [arg for arg in args if arg], check=True)
 
     json = Path(f_json).read_text()
     with open(f_json, "w") as j:  # sort JSON Identity_* in ascending order
